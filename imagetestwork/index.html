@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Image Test</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <div id="containerrow">
+            <canvas id="canvas" width="400" height="300" style="background-color: #CCCCCC;"></canvas>
+    </div>
+
+    <input type="file" id="imageInput" accept="image/*">
+    <input type="text" id="textInputWidth" placeholder="width">
+    <input type="text" id="textInputHeight" placeholder="height">
+
+    <div id="containerrow">
+        <button id="resizeButton">Resize</button>
+        <button id="resetButton">Reset</button>
+    </div>
+
+    <input type="range" id="slider" min="0" max="256" value="128">
+    <p>Threshold: <span id="sliderValue">128</span></p>
+    <button id="download">Download JSON</button>
+
+    <canvas id="canvas2" style="display: none;"></canvas>
+
+  
+    <script type="module" src="/main.js"></script> 
+
+</body>
+</html>
