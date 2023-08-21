@@ -258,21 +258,43 @@ document.addEventListener("keydown", function (event) {
 
         let { x, y } = toScreenPosition(s, camera);
 
-        let { x: x2, y: y2, z: z2 } = toWorldPosition(x, y, camera);
-        addSphere(x2, y2, z2, 0x00ff00, 3);
-        console.log(x2, y2, z2);
-
         // draw line from s to new sphere
         let x1 = s.position.x;
         let y1 = s.position.y;
         let z1 = s.position.z;
-        const points = [];
-		points.push(new THREE.Vector3(x1, y1, z1));
-		points.push(new THREE.Vector3(x2, y2, z2));
+        let x2 = camera.position.x;
+        let y2 = camera.position.y;
+        let z2 = camera.position.z;
 
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0x0000ff }));
-        scene.add(line);
+        const direction = new THREE.Vector3(
+			x2 - x1,
+			y2 - y1,
+			z2 - z1
+		).normalize();
+
+		// Define a sufficiently large distance to extend the line
+		const distance = 1000; // Adjust this as needed
+
+		// Calculate the new end points for the infinite line
+		const newEndPoint1 = new THREE.Vector3(x1, y1, z1).sub(
+			direction.clone().multiplyScalar(distance)
+		);
+		const newEndPoint2 = new THREE.Vector3(x2, y2, z2).add(
+			direction.clone().multiplyScalar(distance)
+		);
+
+		// Create a line geometry using the new end points
+		const geometry = new THREE.BufferGeometry().setFromPoints([
+			newEndPoint1,
+			newEndPoint2,
+		]);
+
+		// Create a line material and add the line to the scene
+		const line = new THREE.Line(
+			geometry,
+			new THREE.LineBasicMaterial({ color: 0x0000ff })
+		);
+		scene.add(line);
         
 
         // add a 2d dot to the screen
