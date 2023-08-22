@@ -6,10 +6,7 @@ overlayCanvas.height = window.innerHeight;
 overlayCanvas.width = window.innerWidth;
 const ctx = overlayCanvas.getContext("2d");
 
-
 const threeCanvas = document.getElementById("threeCanvas");
-
-
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -33,7 +30,6 @@ const camera = new THREE.PerspectiveCamera(
 // Set scene
 const renderer = new THREE.WebGLRenderer({overlayCanvas: threeCanvas});
 
-
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
@@ -42,7 +38,8 @@ scene.background = new THREE.Color(0xffffff);
 const boom = new THREE.Group();
 boom.add(camera);
 scene.add(boom);
-camera.position.set(0, 0, 200); // this sets the boom's length
+const boomLength = 200;
+camera.position.set(0, 0, boomLength); // this sets the boom's length
 camera.lookAt(0, 0, 0); // camera looks at the boom's zero
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
@@ -54,48 +51,48 @@ directionalLight.position.set(vector.x, vector.y, vector.z);
 scene.add(directionalLight);
 
 // Functions
-function toScreenPosition(obj, camera)
-{
-    var vector = new THREE.Vector3();
+// function toScreenPosition(obj, camera)
+// {
+//     var vector = new THREE.Vector3();
 
-    var widthHalf = 0.5 * renderer.getContext().canvas.width;
-    var heightHalf = 0.5 * renderer.getContext().canvas.height;
+//     var widthHalf = 0.5 * renderer.getContext().canvas.width;
+//     var heightHalf = 0.5 * renderer.getContext().canvas.height;
 
-    obj.updateMatrixWorld();
-    vector.setFromMatrixPosition(obj.matrixWorld);
-    vector.project(camera);
+//     obj.updateMatrixWorld();
+//     vector.setFromMatrixPosition(obj.matrixWorld);
+//     vector.project(camera);
 
-    vector.x = ( vector.x * widthHalf ) + widthHalf;
-    vector.y = - (vector.y * heightHalf) + heightHalf;
+//     vector.x = ( vector.x * widthHalf ) + widthHalf;
+//     vector.y = - (vector.y * heightHalf) + heightHalf;
 
-    return { 
-        x: vector.x,
-        y: vector.y
-    };
+//     return { 
+//         x: vector.x,
+//         y: vector.y
+//     };
 
-};
+// };
 
-function toWorldPosition(screenX, screenY, camera) {
-    var vector = new THREE.Vector3();
+// function toWorldPosition(screenX, screenY, camera) {
+//     var vector = new THREE.Vector3();
     
-    camera.updateMatrixWorld(); 
+//     camera.updateMatrixWorld(); 
 
-	var widthHalf = 0.5 * renderer.getContext().canvas.width;
-    var heightHalf = 0.5 * renderer.getContext().canvas.height;
+// 	var widthHalf = 0.5 * renderer.getContext().canvas.width;
+//     var heightHalf = 0.5 * renderer.getContext().canvas.height;
     
 
-	vector.x = (screenX - widthHalf) / widthHalf;
-	vector.y = -(screenY - heightHalf) / heightHalf;
-	vector.z = -1; // Assuming z is in the range of [0, 1]
+// 	vector.x = (screenX - widthHalf) / widthHalf;
+// 	vector.y = -(screenY - heightHalf) / heightHalf;
+// 	vector.z = -1; // Assuming z is in the range of [0, 1]
 
-	vector.unproject(camera);
+// 	vector.unproject(camera);
 
-    return {
-        x: vector.x,
-        y: vector.y,
-        z: vector.z
-    }
-}
+//     return {
+//         x: vector.x,
+//         y: vector.y,
+//         z: vector.z
+//     }
+// }
 
 
 // Images and function to run when images are loaded
@@ -193,15 +190,21 @@ document.addEventListener("mousemove", (event) => {
 		y: event.clientY,
 	};
 
-	camera.updateMatrixWorld(); //Update the camera location
+    updateLight();
+});
+
+// Update light position
+function updateLight() {
+    camera.updateMatrixWorld(); //Update the camera location
 	vector = camera.position.clone(); //Get camera position and put into variable
 	vector.applyMatrix4(camera.matrixWorld); //Hold the camera location in matrix world
 	directionalLight.position.set(vector.x, vector.y, vector.z);
-});
+}
 
 // Render
 function animate() {
-	requestAnimationFrame(animate);
+    requestAnimationFrame(animate);
+    updateLight();
 
 	renderer.render(scene, camera);
 }
@@ -218,6 +221,7 @@ let i = 0;
 document.addEventListener("keydown", function (event) {
     // Log the key code and key character to the console
     console.log("Key pressed:", event.key);
+
     
     // Rotate the boom to the x y z faces
     let bx = boom.rotation.x;
@@ -243,34 +247,40 @@ document.addEventListener("keydown", function (event) {
         bz = 0;
     }
 
+    if (bx >= Math.PI * 2 || bx <= -Math.PI * 2) bx = 0;
+	if (by >= Math.PI * 2 || by <= -Math.PI * 2) by = 0;
+	if (bz >= Math.PI * 2 || bz <= -Math.PI * 2) bz = 0;
+
     boom.rotation.set(bx, by, bz);
     
+    let s = sphereArray[i];
     // Log sphere positions
     if (event.key == "p") {
-        console.log(sphereMatrix);
+        console.log("sphere:", s.position.x, s.position.y, s.position.z);
+        console.log("camera:", camera.position.x, camera.position.y, camera.position.z);
+        console.log("boom:", boom.rotation.x, boom.rotation.y, boom.rotation.z);
     }
+
     if (event.key == "o") {
-        let s = sphereArray[i];
         if (i < sphereArray.length) {
             s.material.color.setHex(0xff0000);
             // i++;
         }
 
-        let { x, y } = toScreenPosition(s, camera);
-
         // draw line from s to new sphere
         let x1 = s.position.x;
         let y1 = s.position.y;
         let z1 = s.position.z;
-        let x2 = camera.position.x;
-        let y2 = camera.position.y;
-        let z2 = camera.position.z;
+        
+        let x2 = boomLength * Math.sin(boom.rotation.y) * Math.cos(boom.rotation.x);
+        let y2 = boomLength * Math.sin(boom.rotation.x);
+        let z2 = boomLength * Math.cos(boom.rotation.y) * Math.cos(boom.rotation.x);
 
         const direction = new THREE.Vector3(
 			x2 - x1,
 			y2 - y1,
 			z2 - z1
-		).normalize();
+        ).normalize();
 
 		// Define a sufficiently large distance to extend the line
 		const distance = 1000; // Adjust this as needed
@@ -292,13 +302,10 @@ document.addEventListener("keydown", function (event) {
 		// Create a line material and add the line to the scene
 		const line = new THREE.Line(
 			geometry,
-			new THREE.LineBasicMaterial({ color: 0x0000ff })
+			new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 100 })
 		);
-		scene.add(line);
-        
-
-        // add a 2d dot to the screen
-        drawDot(x, y, 6, "red");
+        scene.add(line);
+        i++;
 
         
     }
