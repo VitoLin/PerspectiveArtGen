@@ -190,7 +190,6 @@ document.addEventListener("mousemove", (event) => {
 		y: event.clientY,
 	};
 
-    updateLight();
 });
 
 // Update light position
@@ -232,10 +231,10 @@ document.addEventListener("keydown", function (event) {
         bx += Math.PI / 2;
     }
     if (event.key == "a") {
-        by += Math.PI / 2;
+        by -= Math.PI / 2;
     }
     if (event.key == "d") {
-        by -= Math.PI / 2;
+        by += Math.PI / 2;
 
     }
     if (event.key == "s") {
@@ -247,10 +246,11 @@ document.addEventListener("keydown", function (event) {
         bz = 0;
     }
 
-    if (bx >= Math.PI * 2 || bx <= -Math.PI * 2) bx = 0;
-	if (by >= Math.PI * 2 || by <= -Math.PI * 2) by = 0;
-	if (bz >= Math.PI * 2 || bz <= -Math.PI * 2) bz = 0;
-
+    // keep rotation within 0 and 2pi
+    bx = bx % (2 * Math.PI);
+    by = by % (2 * Math.PI);
+    bz = bz % (2 * Math.PI);
+    
     boom.rotation.set(bx, by, bz);
     
     let s = sphereArray[i];
@@ -275,6 +275,21 @@ document.addEventListener("keydown", function (event) {
         let x2 = boomLength * Math.sin(boom.rotation.y) * Math.cos(boom.rotation.x);
         let y2 = boomLength * Math.sin(boom.rotation.x);
         let z2 = boomLength * Math.cos(boom.rotation.y) * Math.cos(boom.rotation.x);
+
+        console.log("x2:", x2, "y2:", y2, "z2:", z2);
+
+        camera.updateMatrixWorld(); //Update the camera location
+		vector = camera.position.clone(); //Get camera position and put into variable
+		vector.applyMatrix4(camera.matrixWorld); //Hold the camera location in matrix world
+        directionalLight.position.set(vector.x, vector.y, vector.z);
+        
+        let x3 = vector.x;
+        let y3 = vector.y;
+        let z3 = vector.z;
+
+        // draw a sphere at x2, y2, z2
+        addSphere(x2, y2, z2, 0x0000ff, sphereRadius);
+        addSphere(x3, y3, z3, 0x00ff00, sphereRadius);
 
         const direction = new THREE.Vector3(
 			x2 - x1,
