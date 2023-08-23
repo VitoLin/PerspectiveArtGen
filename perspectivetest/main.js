@@ -48,51 +48,6 @@ directionalLight.position.set(vector.x, vector.y, vector.z);
 
 scene.add(directionalLight);
 
-// Functions
-// function toScreenPosition(obj, camera)
-// {
-//     var vector = new THREE.Vector3();
-
-//     var widthHalf = 0.5 * renderer.getContext().canvas.width;
-//     var heightHalf = 0.5 * renderer.getContext().canvas.height;
-
-//     obj.updateMatrixWorld();
-//     vector.setFromMatrixPosition(obj.matrixWorld);
-//     vector.project(camera);
-
-//     vector.x = ( vector.x * widthHalf ) + widthHalf;
-//     vector.y = - (vector.y * heightHalf) + heightHalf;
-
-//     return { 
-//         x: vector.x,
-//         y: vector.y
-//     };
-
-// };
-
-// function toWorldPosition(screenX, screenY, camera) {
-//     var vector = new THREE.Vector3();
-    
-//     camera.updateMatrixWorld(); 
-
-// 	var widthHalf = 0.5 * renderer.getContext().canvas.width;
-//     var heightHalf = 0.5 * renderer.getContext().canvas.height;
-    
-
-// 	vector.x = (screenX - widthHalf) / widthHalf;
-// 	vector.y = -(screenY - heightHalf) / heightHalf;
-// 	vector.z = -1; // Assuming z is in the range of [0, 1]
-
-// 	vector.unproject(camera);
-
-//     return {
-//         x: vector.x,
-//         y: vector.y,
-//         z: vector.z
-//     }
-// }
-
-
 // Images and function to run when images are loaded
 fetch("images.json")
 	.then((response) => response.json())
@@ -283,62 +238,91 @@ document.addEventListener("keydown", function (event) {
 		if (i < sphereArray.length) {
 			s.material.color.setHex(0xff0000);
 			i++;
-		}
+        }
+        drawPerspectiveSphere(s, 0xff0000);
+    }
 
-		// position of s
-		let x1 = s.position.x;
-		let y1 = s.position.y;
-		let z1 = s.position.z;
 
-		// draw sphere on view position
-        let viewPosition = getViewCoordinates();
-        drawSphere(viewPosition.x, viewPosition.y, viewPosition.z, 0x00ffff, 5);
-
-		// draw a line from s to view position
-		drawLine(
-			x1,
-			y1,
-			z1,
-			viewPosition.x,
-			viewPosition.y,
-			viewPosition.z
-		);
-        
-        // draw dots on line from s to view position
-        const dist = Math.random() * boomLength;
-        // const dist = 50;
-
-        // draw a sphere on the line from s to view position at dist
-        const pos = posToView(
-			x1,
-			y1,
-			z1,
-			viewPosition.x,
-			viewPosition.y,
-            viewPosition.z,
-            dist
-        );
-        
-        // viewPosition = vector;
-        // set the size of the radius of the sphere so that it looks like the same size as s despite changing its distance
-        const originalDistance = getDistance(x1, y1, z1, viewPosition.x, viewPosition.y, viewPosition.z);
-        const newDistance = getDistance(
-			pos.x,
-			pos.y,
-			pos.z,
-			viewPosition.x,
-			viewPosition.y,
-			viewPosition.z
-        );
-        
-        const radius = getPerspectiveScaledSize(originalDistance, newDistance, sphereRadius);
-        
-        console.log(radius);
-
-        drawSphere(pos.x, pos.y, pos.z, 0xff0000, radius);
+    if (event.key == "h") {
+        hideImage();
     }
 
 });
+
+// Functions
+function hideImage() {
+    sphereArray.forEach(sphere => {
+        if (sphere.visible) {
+            sphere.visible = false;
+        }
+        else {
+            sphere.visible = true;
+        }
+    });
+}
+
+function drawViewSphere() {
+    let viewPosition = getViewCoordinates();
+	drawSphere(viewPosition.x, viewPosition.y, viewPosition.z, 0x00ffff, 5);
+}
+
+function drawPerspectiveSphere(sphere, color, viewInfo = false) {
+	// position of s
+	let x1 = sphere.position.x;
+	let y1 = sphere.position.y;
+	let z1 = sphere.position.z;
+
+	// draw sphere on view position
+	let viewPosition = getViewCoordinates();
+
+	// draw a line from sphere to view position
+    if (viewInfo) {
+        drawViewSphere();
+		drawLine(x1, y1, z1, viewPosition.x, viewPosition.y, viewPosition.z);
+    }
+	
+
+	// draw dots on line from s to view position
+	const dist = Math.random() * boomLength;
+
+	// draw a sphere on the line from s to view position at dist
+	const pos = posToView(
+		x1,
+		y1,
+		z1,
+		viewPosition.x,
+		viewPosition.y,
+		viewPosition.z,
+		dist
+	);
+
+	// viewPosition = vector;
+	// set the size of the radius of the sphere so that it looks like the same size as s despite changing its distance
+	const originalDistance = getDistance(
+		x1,
+		y1,
+		z1,
+		viewPosition.x,
+		viewPosition.y,
+		viewPosition.z
+	);
+	const newDistance = getDistance(
+		pos.x,
+		pos.y,
+		pos.z,
+		viewPosition.x,
+		viewPosition.y,
+		viewPosition.z
+	);
+
+	const radius = getPerspectiveScaledSize(
+		originalDistance,
+		newDistance,
+		sphereRadius
+	);
+
+	drawSphere(pos.x, pos.y, pos.z, color, radius);
+}
 
 function getDistance(x1, y1, z1, x2, y2, z2) {
     const distance = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2);
