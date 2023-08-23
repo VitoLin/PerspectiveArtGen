@@ -276,7 +276,6 @@ document.addEventListener("keydown", function (event) {
     if (event.key == "p") {
         console.log("sphere:", s.position.x, s.position.y, s.position.z);
         console.log("camera:", camera.position.x, camera.position.y, camera.position.z);
-
         console.log("boom:", boom.rotation.x * 180 / Math.PI, boom.rotation.y * 180 / Math.PI, boom.rotation.z * 180 / Math.PI);
     }
 
@@ -286,60 +285,94 @@ document.addEventListener("keydown", function (event) {
 			i++;
 		}
 
-		// draw line from s to new sphere
+		// position of s
 		let x1 = s.position.x;
 		let y1 = s.position.y;
 		let z1 = s.position.z;
 
-		// let theta = boom.rotation.y;
-		// let phi = boom.rotation.x;
+		// draw sphere on view position
+        let viewPosition = getViewCoordinates();
+        drawSphere(viewPosition.x, viewPosition.y, viewPosition.z, 0x00ffff, 5);
 
-		// let x2 = boomLength * Math.sin(phi) * Math.sin(theta);
-		// let z2 = boomLength * Math.cos(phi);
-		// let y2 = boomLength * Math.sin(phi) * Math.cos(theta);
-
-		// console.log("x2:", x2, "y2:", y2, "z2:", z2);
-
-		updateCameraPosition();
-
-		let x3 = vector.x;
-		let y3 = vector.y;
-		let z3 = vector.z;
-
-		// draw a sphere at x2, y2, z2
-		// drawSphere(x2, y2, z2, 0x0000ff, 5);
-
-		// draw sphere on line that is closer
-		drawSphere(x3, y3, z3, 0x00ff00, 5);
-
-		// Calculate the direction vector between the two points
-		const direction = new THREE.Vector3(
-			x3,
-			y3,
-			z3
-		).normalize();
-
-		// Calculate the position of the sphere based on the distance and direction
-		const spherePosition = new THREE.Vector3(0,0,0).add(
-			direction.clone().multiplyScalar(200)
-        );
-        
-        // draw a sphere at the new position
-        drawSphere(spherePosition.x, spherePosition.y, spherePosition.z, 0x00ffff, 5);
-
-		// draw a line from x1, y1, z1 to x2, y2, z2
-		// drawLine(x1, y1, z1, x2, y2, z2);
+		// draw a line from s to view position
 		drawLine(
 			x1,
 			y1,
 			z1,
-			spherePosition.x,
-			spherePosition.y,
-			spherePosition.z
+			viewPosition.x,
+			viewPosition.y,
+			viewPosition.z
 		);
-	}
-    
+        
+        // draw dots on line from s to view position
+        const dist = Math.random() * boomLength;
+        // const dist = 50;
+
+        // draw a sphere on the line from s to view position at dist
+        const pos = posToView(
+			x1,
+			y1,
+			z1,
+			viewPosition.x,
+			viewPosition.y,
+            viewPosition.z,
+            dist
+        );
+        
+        // viewPosition = vector;
+        // set the size of the radius of the sphere so that it looks like the same size as s despite changing its distance
+        const originalDistance = getDistance(x1, y1, z1, viewPosition.x, viewPosition.y, viewPosition.z);
+        const newDistance = getDistance(
+			pos.x,
+			pos.y,
+			pos.z,
+			viewPosition.x,
+			viewPosition.y,
+			viewPosition.z
+        );
+        
+        const radius = getPerspectiveScaledSize(originalDistance, newDistance, sphereRadius);
+        
+        console.log(radius);
+
+        drawSphere(pos.x, pos.y, pos.z, 0xff0000, radius);
+    }
+
 });
+
+function getDistance(x1, y1, z1, x2, y2, z2) {
+    const distance = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2);
+    return distance;
+}
+
+function getPerspectiveScaledSize(originalDistance, newDistance, size) { 
+    return (newDistance / originalDistance) * size;
+}
+
+function getDirection(x1, y1, z1, x2, y2, z2) {
+    const direction = new THREE.Vector3(x2 - x1, y2 - y1, z2 - z1).normalize();
+    return direction;
+}
+
+function transformCoordinates(x, y, z, direction, scale) {
+    const newPoint = new THREE.Vector3(x, y, z).add(
+        direction.clone().multiplyScalar(scale)
+    );
+    return newPoint;
+}
+
+function getViewCoordinates() {
+    updateCameraPosition();
+
+    return posToView(0,0,0, vector.x, vector.y, vector.z, boomLength);
+}
+
+function posToView(x1, y1, z1, x2, y2, z2, dist) {
+    const direction = getDirection(x1, y1, z1, x2, y2 ,z2);
+    const position = transformCoordinates(x1, y1, z1, direction, dist);
+    return position;
+
+}
 
 function drawLine(x1, y1, z1, x2, y2, z2) {
     const direction = new THREE.Vector3(
