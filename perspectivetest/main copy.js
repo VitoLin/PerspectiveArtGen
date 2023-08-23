@@ -193,7 +193,7 @@ document.addEventListener("mousemove", (event) => {
 });
 
 // Update light position
-function updateCameraPosition() {
+function updateLight() {
     camera.updateMatrixWorld(); //Update the camera location
 	vector = camera.position.clone(); //Get camera position and put into variable
 	vector.applyMatrix4(camera.matrixWorld); //Hold the camera location in matrix world
@@ -203,7 +203,7 @@ function updateCameraPosition() {
 // Render
 function animate() {
     requestAnimationFrame(animate);
-    updateCameraPosition();
+    updateLight();
 
 	renderer.render(scene, camera);
 }
@@ -264,7 +264,7 @@ document.addEventListener("keydown", function (event) {
     if (event.key == "o") {
         if (i < sphereArray.length) {
             s.material.color.setHex(0xff0000);
-            i++;
+            // i++;
         }
 
         // draw line from s to new sphere
@@ -278,69 +278,54 @@ document.addEventListener("keydown", function (event) {
 
         console.log("x2:", x2, "y2:", y2, "z2:", z2);
 
-        updateCameraPosition();
+        camera.updateMatrixWorld(); //Update the camera location
+		vector = camera.position.clone(); //Get camera position and put into variable
+		vector.applyMatrix4(camera.matrixWorld); //Hold the camera location in matrix world
+        directionalLight.position.set(vector.x, vector.y, vector.z);
         
         let x3 = vector.x;
         let y3 = vector.y;
         let z3 = vector.z;
 
         // draw a sphere at x2, y2, z2
-        const sphereGeometry = new THREE.SphereGeometry(5, 32, 32);
-		const sphereMaterial = new THREE.MeshLambertMaterial({
-			color: 0x0000ff,
-		});
-		const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        addSphere(x2, y2, z2, 0x0000ff, sphereRadius);
+        addSphere(x3, y3, z3, 0x00ff00, sphereRadius);
 
-		// Position spheres in a grid pattern
-		sphere.position.set(
-            x3,
-            y3,
-            z3
+        const direction = new THREE.Vector3(
+			x2 - x1,
+			y2 - y1,
+			z2 - z1
+        ).normalize();
+
+		// Define a sufficiently large distance to extend the line
+		const distance = 1000; // Adjust this as needed
+
+		// Calculate the new end points for the infinite line
+		const newEndPoint1 = new THREE.Vector3(x1, y1, z1).sub(
+			direction.clone().multiplyScalar(distance)
+		);
+		const newEndPoint2 = new THREE.Vector3(x2, y2, z2).add(
+			direction.clone().multiplyScalar(distance)
 		);
 
-        scene.add(sphere);
-        
-        // draw a line from x1, y1, z1 to x2, y2, z2
-        drawLine(x1, y1, z1, x3, y3, z3);
+		// Create a line geometry using the new end points
+		const geometry = new THREE.BufferGeometry().setFromPoints([
+			newEndPoint1,
+			newEndPoint2,
+		]);
 
+		// Create a line material and add the line to the scene
+		const line = new THREE.Line(
+			geometry,
+			new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 100 })
+		);
+        scene.add(line);
+        i++;
 
         
     }
     
 });
-
-function drawLine(x1, y1, z1, x2, y2, z2) {
-    const direction = new THREE.Vector3(
-        x2 - x1,
-        y2 - y1,
-        z2 - z1
-    ).normalize();
-
-    // Define a sufficiently large distance to extend the line
-    const distance = 1000; // Adjust this as needed
-
-    // Calculate the new end points for the infinite line
-    const newEndPoint1 = new THREE.Vector3(x1, y1, z1).sub(
-        direction.clone().multiplyScalar(distance)
-    );
-    const newEndPoint2 = new THREE.Vector3(x2, y2, z2).add(
-        direction.clone().multiplyScalar(distance)
-    );
-
-    // Create a line geometry using the new end points
-    const geometry = new THREE.BufferGeometry().setFromPoints([
-        newEndPoint1,
-        newEndPoint2,
-    ]);
-
-    // Create a line material and add the line to the scene
-    const line = new THREE.Line(
-        geometry,
-        new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 100 })
-    );
-    scene.add(line);
-}
-    
 
 function drawDot(x, y, radius, color) {
 	ctx.beginPath();
