@@ -25,8 +25,6 @@ const camera = new THREE.PerspectiveCamera(
 // 	1000
 // );
 
-
-
 // Set scene
 const renderer = new THREE.WebGLRenderer({overlayCanvas: threeCanvas});
 
@@ -132,6 +130,20 @@ function addSphere(x, y, z, color, radius) {
     return sphere;
 }
 
+// Draw Sphere
+function drawSphere(x,y,z,color,radius) {
+    const sphereGeometry = new THREE.SphereGeometry(radius, 32, 32);
+	const sphereMaterial = new THREE.MeshLambertMaterial({
+		color: color,
+	});
+	const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+
+    // Draw sphere at x, y, z
+	sphere.position.set(x, y, z);
+
+	scene.add(sphere);
+}
+
 // Draw spheres
 let sphereMatrix = [];
 let sphereArray = [];
@@ -215,6 +227,12 @@ if (WebGL.isWebGLAvailable()) {
 	document.getElementById("container").appendChild(warning);
 }
 
+// Draw Sphere at the center of world
+// drawSphere(0, 0, 0, 0x000000, 10);
+// drawSphere(10, 0, 0, 0xff0000, 10);
+// drawSphere(0, 10, 0, 0x00ff00, 10);
+// drawSphere(0, 0, 10, 0x0000ff, 10);
+
 // Keyboard input
 let i = 0;
 document.addEventListener("keydown", function (event) {
@@ -258,54 +276,68 @@ document.addEventListener("keydown", function (event) {
     if (event.key == "p") {
         console.log("sphere:", s.position.x, s.position.y, s.position.z);
         console.log("camera:", camera.position.x, camera.position.y, camera.position.z);
-        console.log("boom:", boom.rotation.x, boom.rotation.y, boom.rotation.z);
+
+        console.log("boom:", boom.rotation.x * 180 / Math.PI, boom.rotation.y * 180 / Math.PI, boom.rotation.z * 180 / Math.PI);
     }
 
     if (event.key == "o") {
-        if (i < sphereArray.length) {
-            s.material.color.setHex(0xff0000);
-            i++;
-        }
+		if (i < sphereArray.length) {
+			s.material.color.setHex(0xff0000);
+			i++;
+		}
 
-        // draw line from s to new sphere
-        let x1 = s.position.x;
-        let y1 = s.position.y;
-        let z1 = s.position.z;
+		// draw line from s to new sphere
+		let x1 = s.position.x;
+		let y1 = s.position.y;
+		let z1 = s.position.z;
+
+		// let theta = boom.rotation.y;
+		// let phi = boom.rotation.x;
+
+		// let x2 = boomLength * Math.sin(phi) * Math.sin(theta);
+		// let z2 = boomLength * Math.cos(phi);
+		// let y2 = boomLength * Math.sin(phi) * Math.cos(theta);
+
+		// console.log("x2:", x2, "y2:", y2, "z2:", z2);
+
+		updateCameraPosition();
+
+		let x3 = vector.x;
+		let y3 = vector.y;
+		let z3 = vector.z;
+
+		// draw a sphere at x2, y2, z2
+		// drawSphere(x2, y2, z2, 0x0000ff, 5);
+
+		// draw sphere on line that is closer
+		drawSphere(x3, y3, z3, 0x00ff00, 5);
+
+		// Calculate the direction vector between the two points
+		const direction = new THREE.Vector3(
+			x3,
+			y3,
+			z3
+		).normalize();
+
+		// Calculate the position of the sphere based on the distance and direction
+		const spherePosition = new THREE.Vector3(0,0,0).add(
+			direction.clone().multiplyScalar(200)
+        );
         
-        let x2 = boomLength * Math.sin(boom.rotation.y) * Math.cos(boom.rotation.x);
-        let y2 = boomLength * Math.sin(boom.rotation.x);
-        let z2 = boomLength * Math.cos(boom.rotation.y) * Math.cos(boom.rotation.x);
+        // draw a sphere at the new position
+        drawSphere(spherePosition.x, spherePosition.y, spherePosition.z, 0x00ffff, 5);
 
-        console.log("x2:", x2, "y2:", y2, "z2:", z2);
-
-        updateCameraPosition();
-        
-        let x3 = vector.x;
-        let y3 = vector.y;
-        let z3 = vector.z;
-
-        // draw a sphere at x2, y2, z2
-        const sphereGeometry = new THREE.SphereGeometry(5, 32, 32);
-		const sphereMaterial = new THREE.MeshLambertMaterial({
-			color: 0x0000ff,
-		});
-		const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-
-		// Position spheres in a grid pattern
-		sphere.position.set(
-            x3,
-            y3,
-            z3
+		// draw a line from x1, y1, z1 to x2, y2, z2
+		// drawLine(x1, y1, z1, x2, y2, z2);
+		drawLine(
+			x1,
+			y1,
+			z1,
+			spherePosition.x,
+			spherePosition.y,
+			spherePosition.z
 		);
-
-        scene.add(sphere);
-        
-        // draw a line from x1, y1, z1 to x2, y2, z2
-        drawLine(x1, y1, z1, x3, y3, z3);
-
-
-        
-    }
+	}
     
 });
 
@@ -340,7 +372,6 @@ function drawLine(x1, y1, z1, x2, y2, z2) {
     );
     scene.add(line);
 }
-    
 
 function drawDot(x, y, radius, color) {
 	ctx.beginPath();
