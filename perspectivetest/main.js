@@ -85,20 +85,6 @@ function addSphere(x, y, z, color, radius) {
     return sphere;
 }
 
-// Draw Sphere
-function drawSphere(x,y,z,color,radius) {
-    const sphereGeometry = new THREE.SphereGeometry(radius, 32, 32);
-	const sphereMaterial = new THREE.MeshLambertMaterial({
-		color: color,
-	});
-	const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-
-    // Draw sphere at x, y, z
-	sphere.position.set(x, y, z);
-
-	scene.add(sphere);
-}
-
 // Draw spheres
 let sphereMatrix = [];
 let sphereArray = [];
@@ -113,14 +99,19 @@ function drawSpheres(imagexy, imageyz, imagezx) {
                 // xy imagexy[matrixSize - y - 1][x] == 1
                 // yz imageyz[matrixSize - y - 1][z] == 1
                 // zx imagezx[z][x] == 1
-                if (imagexy[matrixSize - y - 1][x] == 1 && imageyz[matrixSize - y - 1][z] == 1) {
-                    let sphere = addSphere(x, y, z, sphereColor, sphereRadius);
-                    sphereMatrix[x][y].push(sphere);
-                    sphereArray.push(sphere);
-                }
-                else {
-                    sphereMatrix[x][y].push(null);
-                }
+                if (
+					(imagexy[matrixSize - y - 1][x] == 1 &&
+						z == matrixSize - 1) ||
+					(imageyz[matrixSize - y - 1][z] == 1 &&
+						x == matrixSize - 1) ||
+					(imagezx[z][matrixSize - x -1] == 1 && y == matrixSize - 1)
+				) {
+					let sphere = addSphere(x, y, z, sphereColor, sphereRadius);
+					sphereMatrix[x][y].push(sphere);
+					sphereArray.push(sphere);
+				} else {
+					sphereMatrix[x][y].push(null);
+				}
             }
         }
     }
@@ -250,6 +241,19 @@ document.addEventListener("keydown", function (event) {
 });
 
 // Functions
+function drawSphere(x, y, z, color, radius) {
+	const sphereGeometry = new THREE.SphereGeometry(radius, 32, 32);
+	const sphereMaterial = new THREE.MeshLambertMaterial({
+		color: color,
+	});
+	const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+
+	// Draw sphere at x, y, z
+	sphere.position.set(x, y, z);
+
+	scene.add(sphere);
+}
+
 function hideImage() {
     sphereArray.forEach(sphere => {
         if (sphere.visible) {
