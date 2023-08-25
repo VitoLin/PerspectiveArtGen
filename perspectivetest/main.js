@@ -26,7 +26,7 @@ const camera = new THREE.PerspectiveCamera(
 // );
 
 // Set scene
-const renderer = new THREE.WebGLRenderer({overlayCanvas: threeCanvas});
+const renderer = new THREE.WebGLRenderer({canvas: threeCanvas});
 
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
