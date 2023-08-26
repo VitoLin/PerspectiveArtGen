@@ -40,11 +40,6 @@ const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 scene.add(directionalLight);
 updateLight();
 
-
-
-
-
-
 // Animation loop
 function animate() {
     updateLight();
@@ -82,7 +77,7 @@ if (WebGL.isWebGLAvailable()) {
 }
 
 // Add initial objects
-drawSphere(0, 0, 0, 0x000000, 10);
+// drawSphere(0, 0, 0, 0x000000, 10); // Center sphere
 
 
 
@@ -170,13 +165,13 @@ document.addEventListener("keydown", function (event) {
     // Test perspective sphere
     if (event.key == "o") {
         sphereArray.forEach((sphere) => {
-            let distance = Math.random() * 400 - 200;
+            let distance = Math.random() * 100+100;
             drawPerspectiveSphere(
 				sphere,
-				0x0000ff,
+				0x000000,
 				distance,
                 sphere.geometry.parameters.radius,
-                true
+                false
 			);
         });
     }
@@ -226,11 +221,12 @@ document.addEventListener("keydown", function (event) {
     
     // Draw square of spheres
     if (event.key == "l") {
+        // Draw the sphere array
 		sphereArray = drawSquare(20, 10, 5, 0x00ff00);
 
+        // Face the array toware the camera
         sphereArray.forEach((sphere) => {
             sphere.position.applyQuaternion(boom.quaternion);
-
         });
 	}
 
@@ -241,7 +237,7 @@ function drawSquare(size, spacing, radius, color) {
     let sphereArray = [];
     for (let i = 0; i < size; i++) {
         for (let j = 0;j < size;j++) {
-            if (image1[i][j] == 1) {
+            if (image1[size-j-1][i] == 1) {
             sphereArray.push(
 				drawSphere(
 					(i - (size - 1) / 2) * spacing,
@@ -477,10 +473,6 @@ function createViewPlane(distance, width, height, color) {
 
 }
 
-
-
-
-
 // Hides the image
 function hideImage() {
 	sphereArray.forEach((sphere) => {
@@ -492,7 +484,12 @@ function hideImage() {
 	});
 }
 
-
+function genRandHole(randmin1, randmax1, randmin2, randmax2) {
+    let rand1 = Math.random() * (randmax1 - randmin1) + randmin1;
+    let rand2 = Math.random() * (randmax2 - randmin2) + randmin2;
+    let hole = [rand1, rand2];
+    return hole[Math.floor(Math.random()*2)];
+}
 
 
 
