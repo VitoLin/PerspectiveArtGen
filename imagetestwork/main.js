@@ -259,6 +259,13 @@ download.addEventListener("click", function () {
 	}
 });
 
+save.addEventListener("click", () => {
+	const downloadLink = document.createElement("a");
+	downloadLink.download = "image.png";
+	downloadLink.href = canvas.toDataURL("image/png");
+	downloadLink.click();
+});
+
 function generateJSON(imageData) {
 	const matrix = [];
 	for (let y = 0; y < imageData.height; y++) {

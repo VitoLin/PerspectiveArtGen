@@ -14,9 +14,10 @@ const scene = new THREE.Scene();
 
 // Set scene
 const renderer = new THREE.WebGLRenderer({
-    canvas: threeCanvas,
-    powerPreference: "high-performance",
+	canvas: threeCanvas,
+	powerPreference: "high-performance",
 });
+
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 scene.background = new THREE.Color(0xffffff);
@@ -30,6 +31,7 @@ const camera = new THREE.PerspectiveCamera(
 	0.1,
 	1000
 );
+
 // Set up boom
 const boom = new THREE.Group();
 boom.add(camera);
@@ -38,31 +40,21 @@ const boomLength = 200;
 camera.position.set(0, 0, boomLength); // this sets the boom's length
 camera.lookAt(0, 0, 0); // camera looks at the boom's zero
 
-// set up light
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-scene.add(directionalLight);
-updateLight();
-
 // Animation loop
 function animate() {
-    updateLight();
-    requestAnimationFrame(animate);
+	requestAnimationFrame(animate);
 	renderer.render(scene, camera);
 }
 
 // Initialization
-let image1;
-let image2;
-let image3;
+let images;
 function initialize() {
 	// Load images
 	// Images and function to run when images are loaded
 	fetch("images.json")
 		.then((response) => response.json())
 		.then((jsonData) => {
-			image1 = jsonData.one;
-			image2 = jsonData.two;
-			image3 = jsonData.three;
+            images = jsonData.images;
 
 			animate();
 		})
@@ -81,8 +73,6 @@ if (WebGL.isWebGLAvailable()) {
 
 // Add initial objects
 // drawSphere(0, 0, 0, 0x000000, 10); // Center sphere
-
-
 
 // Logic
 // Camera controls
@@ -115,79 +105,99 @@ document.addEventListener("mousemove", (event) => {
 		x: event.clientX,
 		y: event.clientY,
 	};
-
 });
 
 // Keyboard input
 let sphereArray = [];
+let i = 0;
+
 document.addEventListener("keydown", function (event) {
-    // Log the key code and key character to the console
-    console.log("Key pressed:", event.key);
+	// Log the key code and key character to the console
+	console.log("Key pressed:", event.key);
 
-    // Rotate the boom to the x y z faces NEEDS UPDATE
-    let bx = boom.rotation.x;
-    let by = boom.rotation.y;
-    let bz = boom.rotation.z;
+	// Rotate the boom to the x y z faces NEEDS UPDATE
+	let bx = boom.rotation.x;
+	let by = boom.rotation.y;
+	let bz = boom.rotation.z;
+    const rotationAmount = Math.PI / 4;
+	if (event.key == "w") {
+		bx -= rotationAmount;
+	}
+	if (event.key == "a") {
+		by -= rotationAmount;
+	}
+	if (event.key == "d") {
+		by += rotationAmount;
+	}
+	if (event.key == "s") {
+		bx += rotationAmount;
+	}
+	if (event.key == " ") {
+		bx = 0;
+		by = 0;
+		bz = 0;
+	}
 
-    if (event.key == "w") {
-        bx += Math.PI / 2;
-    }
-    if (event.key == "a") {
-        by -= Math.PI / 2;
-    }
-    if (event.key == "d") {
-        by += Math.PI / 2;
+	// keep rotation within 0 and 2pi
+	bx = bx % (2 * Math.PI);
+	by = by % (2 * Math.PI);
+	bz = bz % (2 * Math.PI);
 
-    }
-    if (event.key == "s") {
-        bx -= Math.PI / 2;
-    }
-    if (event.key == " ") {
-        bx = 0;
-        by = 0;
-        bz = 0;
-    }
+	boom.rotation.set(bx, by, bz);
 
-    // keep rotation within 0 and 2pi
-    bx = bx % (2 * Math.PI);
-    by = by % (2 * Math.PI);
-    bz = bz % (2 * Math.PI);
-    
-    boom.rotation.set(bx, by, bz);
-    
-    // let s = sphereArray[0];
-    // // Log some information
-    if (event.key == "p") {
-        // console.log("sphere:", s.position.x, s.position.y, s.position.z);
-        console.log("camera:", camera.position.x, camera.position.y, camera.position.z);
-        console.log("boom:", boom.rotation.x * 180 / Math.PI, boom.rotation.y * 180 / Math.PI, boom.rotation.z * 180 / Math.PI);
-        let viewPosition = getViewCoordinates();
-        console.log("view:", viewPosition.x, viewPosition.y, viewPosition.z);
-    }
+	// let s = sphereArray[0];
+	// // Log some information
+	if (event.key == "p") {
+		// console.log("sphere:", s.position.x, s.position.y, s.position.z);
+		console.log(
+			"camera:",
+			camera.position.x,
+			camera.position.y,
+			camera.position.z
+		);
+		console.log(
+			"boom:",
+			(boom.rotation.x * 180) / Math.PI,
+			(boom.rotation.y * 180) / Math.PI,
+			(boom.rotation.z * 180) / Math.PI
+		);
+		let viewPosition = getViewCoordinates();
+		console.log("view:", viewPosition.x, viewPosition.y, viewPosition.z);
+	}
 
-    // Test perspective sphere
-    if (event.key == "o") {
-        sphereArray.forEach((sphere) => {
-            let distance = Math.random() * 100+100;
-            drawPerspectiveSphere(
+	// Test perspective sphere
+	if (event.key == "o") {
+		sphereArray.forEach((sphere) => {
+			let distance = Math.random() * 100 + 75;
+			let cube = drawPerspectiveCube(
 				sphere,
 				0x000000,
 				distance,
-                sphere.geometry.parameters.radius,
-                false
-			);
-        });
-        console.log("boom.rotation.x:", boom.rotation.x, "boom.rotation.y:", boom.rotation.y, "boom.rotation.z:", boom.rotation.z);
-    }
+				sphere.geometry.parameters.radius * 2,
+				false
+            );
 
-    // Hide image reference
-    if (event.key == "h") {
-        hideImage();
-    }
+            // Face the cube toward the camera
+            cube.rotation.copy(boom.rotation);
+            
+		});
+		console.log(
+			"boom.rotation.x:",
+			boom.rotation.x,
+			"boom.rotation.y:",
+			boom.rotation.y,
+			"boom.rotation.z:",
+			boom.rotation.z
+		);
+	}
 
+	// Hide image reference
+	if (event.key == "h") {
+		hideImage();
+	}
 
-    // Create plane
-    if (event.key == "c") {
+	// Create plane
+	if (event.key == "c") {
 		let plane = createViewPlane(50, 100, 100, 0x00ff00);
 
 		// Get normal and point on plane
@@ -218,47 +228,67 @@ document.addEventListener("keydown", function (event) {
 		const D = normal.dot(pointOnPlane);
 		const equation = `${normal.x}x + ${normal.y}y + ${normal.z}z = ${D}`;
 
-        console.log("Equation of the Plane:", equation);
-
-        
-    }
-    
-    // Draw square of spheres
-    if (event.key == "l") {
-        // Draw the sphere array
-		sphereArray = drawSquare(20, 10, 5, 0x00ff00);
-
-        // Face the array toware the camera
-        sphereArray.forEach((sphere) => {
-            sphere.position.applyQuaternion(boom.quaternion);
-        });
+		console.log("Equation of the Plane:", equation);
 	}
 
+	// Draw square of spheres
+	if (event.key == "l") {
+		// Draw the sphere array
+        sphereArray = drawImage(images[i], 100, 0x000000);
+        i++;
+
+		// Face the array toware the camera
+        sphereArray.forEach((sphere) => {
+            sphere.position.applyQuaternion(boom.quaternion);
+		});
+	}
 });
 
 // Draw square of spheres
 function drawSquare(size, spacing, radius, color) {
+	let sphereArray = [];
+	for (let i = 0; i < size; i++) {
+		for (let j = 0; j < size; j++) {
+			if (images[0][size - j - 1][i] == 1) {
+				sphereArray.push(
+					drawSphere(
+						(i - (size - 1) / 2) * spacing,
+						(j - (size - 1) / 2) * spacing,
+						0,
+						color,
+						radius
+					)
+				);
+			}
+		}
+	}
+	return sphereArray;
+}
+
+// Draw image
+function drawImage(image, scale, color) {
     let sphereArray = [];
-    for (let i = 0; i < size; i++) {
-        for (let j = 0;j < size;j++) {
-            if (image1[size-j-1][i] == 1) {
-            sphereArray.push(
-				drawSphere(
-					(i - (size - 1) / 2) * spacing,
-					(j - (size - 1) / 2) * spacing,
-					0,
-					color,
-					radius
-				)
-			);
-                
+    let size = image.length;
+    let spacing = scale / size;
+    let radius = spacing / 2;
+    let offset = -scale / 2 + radius;
+    let x = offset;
+    let y = offset;
+    let z = 0;
+
+    for (let i = 0;i < image.length;i++) {
+        
+        x = offset;
+        for (let j = 0; j < image[0].length; j++) {
+            if (image[image.length - i - 1][j] == 1) {
+                sphereArray.push(drawSphere(x, y, z, color, radius));
             }
+            x += spacing;
         }
+        y += spacing;
     }
     return sphereArray;
 }
-
-
 
 // Functions
 // Get coordinates to camera and put it in cameraPositionVector
@@ -268,21 +298,11 @@ function updateCameraPosition() {
 	cameraPositionVector.applyMatrix4(camera.matrixWorld); //Hold the camera location in matrix world
 }
 
-// Update light position based on vector
-function setLightPosition(vector) {
-    directionalLight.position.set(vector.x, vector.y, vector.z);
-}
-
-// Update light position based on camera position
-function updateLight() {
-    updateCameraPosition();
-    setLightPosition(cameraPositionVector);
-}
 
 // Draw sphere at x, y, z with color and radius
 function drawSphere(x, y, z, color, radius) {
 	const sphereGeometry = new THREE.SphereGeometry(radius, 32, 32);
-	const sphereMaterial = new THREE.MeshLambertMaterial({
+	const sphereMaterial = new THREE.MeshBasicMaterial({
 		color: color,
 	});
 	const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
@@ -290,9 +310,25 @@ function drawSphere(x, y, z, color, radius) {
 	// Draw sphere at x, y, z
 	sphere.position.set(x, y, z);
 
-    scene.add(sphere);
+	scene.add(sphere);
 
-    return sphere;
+	return sphere;
+}
+
+// Draw cube at x, y, z with color and size
+function drawCube(x, y, z, color, size) {
+    const cubeGeometry = new THREE.BoxGeometry(size, size, size);
+    const cubeMaterial = new THREE.MeshBasicMaterial({
+        color: color,
+    });
+    const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+
+    // Draw cube at x, y, z
+    cube.position.set(x, y, z);
+
+    scene.add(cube);
+
+    return cube;
 }
 
 // Get distance between two points
@@ -308,7 +344,7 @@ function getPerspectiveScaledSize(originalDistance, newDistance, size) {
 	return (newDistance / originalDistance) * size;
 }
 
-// Get coordinates of point from x, y, z in direction with scale 
+// Get coordinates of point from x, y, z in direction with scale
 // Helper for posFromPoint
 function transformCoordinates(x, y, z, direction, scale) {
 	const newPoint = new THREE.Vector3(x, y, z).add(
@@ -327,7 +363,15 @@ function posFromPoint(x1, y1, z1, x2, y2, z2, dist) {
 // Coordinates of view instead of camera
 function getViewCoordinates() {
 	updateCameraPosition();
-	return posFromPoint(0, 0, 0, cameraPositionVector.x, cameraPositionVector.y, cameraPositionVector.z, boomLength);
+	return posFromPoint(
+		0,
+		0,
+		0,
+		cameraPositionVector.x,
+		cameraPositionVector.y,
+		cameraPositionVector.z,
+		boomLength
+	);
 }
 
 // Get direction from x1, y1, z1 to x2, y2, z2
@@ -337,7 +381,7 @@ function getDirection(x1, y1, z1, x2, y2, z2) {
 }
 
 // Draw line from x1, y1, z1 to x2, y2, z2
-// Old and missing ability to edit distance and color 
+// Old and missing ability to edit distance and color
 function drawLine(x1, y1, z1, x2, y2, z2) {
 	const direction = getDirection(x1, y1, z1, x2, y2, z2);
 
@@ -361,11 +405,11 @@ function drawLine(x1, y1, z1, x2, y2, z2) {
 	// Create a line material and add the line to the scene
 	const line = new THREE.Line(
 		geometry,
-		new THREE.LineBasicMaterial({ color: 0x0000ff})
+		new THREE.LineBasicMaterial({ color: 0x0000ff })
 	);
-    scene.add(line);
-    
-    return line;
+	scene.add(line);
+
+	return line;
 }
 
 // Draw sphere on view position
@@ -375,7 +419,13 @@ function drawViewSphere() {
 }
 
 // Draw sphere so that it maintains its size relative to the current view position
-function drawPerspectiveSphere(sphere, color, distance, radius, viewInfo = false) {
+function drawPerspectiveSphere(
+	sphere,
+	color,
+	distance,
+	radius,
+	viewInfo = false
+) {
 	// position of s
 	let x1 = sphere.position.x;
 	let y1 = sphere.position.y;
@@ -429,6 +479,67 @@ function drawPerspectiveSphere(sphere, color, distance, radius, viewInfo = false
 	return drawSphere(pos.x, pos.y, pos.z, color, newRadius);
 }
 
+// Draw cube so that it maintains its size relative to the current view position
+function drawPerspectiveCube(
+    cube,
+    color,
+    distance,
+    size,
+    viewInfo = false
+) {
+    // position of s
+    let x1 = cube.position.x;
+    let y1 = cube.position.y;
+    let z1 = cube.position.z;
+    
+    // draw sphere on view position
+    let viewPosition = getViewCoordinates();
+
+    // draw a line from sphere to view position
+    if (viewInfo) {
+        drawViewSphere();
+        drawLine(x1, y1, z1, viewPosition.x, viewPosition.y, viewPosition.z);
+    }
+
+    // draw a sphere on the line from s to view position at dist
+    const pos = posFromPoint(
+        x1,
+        y1,
+        z1,
+        viewPosition.x,
+        viewPosition.y,
+        viewPosition.z,
+        distance
+    );
+
+    // viewPosition = vector;
+    // set the size of the radius of the sphere so that it looks like the same size as s despite changing its distance
+    const originalDistance = getDistance(
+        x1,
+        y1,
+        z1,
+        viewPosition.x,
+        viewPosition.y,
+        viewPosition.z
+    );
+    const newDistance = getDistance(
+        pos.x,
+        pos.y,
+        pos.z,
+        viewPosition.x,
+        viewPosition.y,
+        viewPosition.z
+    );
+
+    const newSize = getPerspectiveScaledSize(
+        originalDistance,
+        newDistance,
+        size
+    );
+
+    return drawCube(pos.x, pos.y, pos.z, color, newSize);
+}
+
 // Draw plane at x, y, z with width, height, and color
 function drawPlane(x, y, z, width, height, color) {
 	const planeGeometry = new THREE.PlaneGeometry(width, height); // Adjust the size as needed
@@ -448,33 +559,32 @@ function drawPlane(x, y, z, width, height, color) {
 	scene.add(planeMesh);
 
 	// Apply the rotation to the plane
-    planeMesh.rotation.copy(boom.rotation);
-    
-    return planeMesh;
+	planeMesh.rotation.copy(boom.rotation);
+
+	return planeMesh;
 }
 
 // Cretae a plane at a distance from the origin
 function createViewPlane(distance, width, height, color) {
-    let viewPosition = getViewCoordinates();
-    let closerPos = posFromPoint(
-        0,
-        0,
-        0,
-        viewPosition.x,
-        viewPosition.y,
-        viewPosition.z,
-        distance
-    );
+	let viewPosition = getViewCoordinates();
+	let closerPos = posFromPoint(
+		0,
+		0,
+		0,
+		viewPosition.x,
+		viewPosition.y,
+		viewPosition.z,
+		distance
+	);
 
-    return drawPlane(
-        closerPos.x,
-        closerPos.y,
-        closerPos.z,
-        width,
-        height,
-        color
-    );
-
+	return drawPlane(
+		closerPos.x,
+		closerPos.y,
+		closerPos.z,
+		width,
+		height,
+		color
+	);
 }
 
 // Hides the image
@@ -489,12 +599,8 @@ function hideImage() {
 }
 
 function genRandHole(randmin1, randmax1, randmin2, randmax2) {
-    let rand1 = Math.random() * (randmax1 - randmin1) + randmin1;
-    let rand2 = Math.random() * (randmax2 - randmin2) + randmin2;
-    let hole = [rand1, rand2];
-    return hole[Math.floor(Math.random()*2)];
+	let rand1 = Math.random() * (randmax1 - randmin1) + randmin1;
+	let rand2 = Math.random() * (randmax2 - randmin2) + randmin2;
+	let hole = [rand1, rand2];
+	return hole[Math.floor(Math.random() * 2)];
 }
-
-
-
-
