@@ -1,14 +1,30 @@
 import * as THREE from "three";
 import WebGL from "three/addons/capabilities/WebGL.js";
 
+// Setup
+// Setup canvases
 const overlayCanvas = document.getElementById("overlayCanvas");
 overlayCanvas.height = window.innerHeight;
 overlayCanvas.width = window.innerWidth;
 const ctx = overlayCanvas.getContext("2d");
-
 const threeCanvas = document.getElementById("threeCanvas");
 
+// Setup scene
 const scene = new THREE.Scene();
+
+// Set scene
+const renderer = new THREE.WebGLRenderer({
+	canvas: threeCanvas,
+	powerPreference: "high-performance",
+});
+
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+scene.background = new THREE.Color(0xffffff);
+
+// Set up camera with boom
+// Set up camera
+let cameraPositionVector = new THREE.Vector3(0, 0, 0);
 const camera = new THREE.PerspectiveCamera(
 	75,
 	window.innerWidth / window.innerHeight,
@@ -16,23 +32,7 @@ const camera = new THREE.PerspectiveCamera(
 	1000
 );
 
-// const camera = new THREE.OrthographicCamera(
-// 	window.innerWidth / -2,
-// 	window.innerWidth / 2,
-// 	window.innerHeight / 2,
-// 	window.innerHeight / -2,
-// 	1,
-// 	1000
-// );
-
-// Set scene
-const renderer = new THREE.WebGLRenderer({canvas: threeCanvas});
-
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-scene.background = new THREE.Color(0xffffff);
-
+// Set up boom
 const boom = new THREE.Group();
 boom.add(camera);
 scene.add(boom);
@@ -40,83 +40,40 @@ const boomLength = 200;
 camera.position.set(0, 0, boomLength); // this sets the boom's length
 camera.lookAt(0, 0, 0); // camera looks at the boom's zero
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-camera.updateMatrixWorld(); //Update the camera location
-let vector = camera.position.clone(); //Get camera position and put into variable
-vector.applyMatrix4(camera.matrixWorld); //Hold the camera location in matrix world
-directionalLight.position.set(vector.x, vector.y, vector.z);
-
-scene.add(directionalLight);
-
-// Images and function to run when images are loaded
-fetch("images.json")
-	.then((response) => response.json())
-	.then((jsonData) => {
-		let imagexy = jsonData.one;
-        let imageyz = jsonData.two;
-        let imagezx = jsonData.three;
-
-        drawSpheres(imagexy, imageyz, imagezx);
-	})
-	.catch((error) => {
-		console.error("Error loading JSON:", error);
-});
-
-// Add spheres to the scene
-const matrixSize = 20; // Adjust the size of the matrix
-const sphereRadius = 3;
-const sphereColor = 0x000000;
-
-function addSphere(x, y, z, color, radius) {
-	const sphereGeometry = new THREE.SphereGeometry(radius, 32, 32);
-	const sphereMaterial = new THREE.MeshLambertMaterial({
-		color: color,
-	});
-	const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-
-	// Position spheres in a grid pattern
-	sphere.position.set(
-		x * 4 - (matrixSize - 1) * 2,
-		y * 4 - (matrixSize - 1) * 2,
-		z * 4 - (matrixSize - 1) * 2
-	);
-
-    scene.add(sphere);
-    return sphere;
+// Animation loop
+function animate() {
+	requestAnimationFrame(animate);
+	renderer.render(scene, camera);
 }
 
-// Draw spheres
-let sphereMatrix = [];
-let sphereArray = [];
+// Initialization
+function initialize() {
+	// Load images
+	// Images and function to run when images are loaded
+	fetch("images.json")
+		.then((response) => response.json())
+		.then((jsonData) => {
+            images = jsonData.images;
 
-function drawSpheres(imagexy, imageyz, imagezx) {
-    for (let x = 0;x < matrixSize;x++) {
-        sphereMatrix.push([]);
-        for (let y = 0;y < matrixSize;y++) {
-            sphereMatrix[x].push([]);
-            for (let z = 0;z < matrixSize;z++) {
-                // images are x,y y,z z,x
-                // xy imagexy[matrixSize - y - 1][x] == 1
-                // yz imageyz[matrixSize - y - 1][z] == 1
-                // zx imagezx[z][x] == 1
-                if (
-					(imagexy[matrixSize - y - 1][x] == 1 &&
-						z == matrixSize - 1) ||
-					(imageyz[matrixSize - y - 1][z] == 1 &&
-						x == matrixSize - 1) ||
-					(imagezx[z][matrixSize - x -1] == 1 && y == matrixSize - 1)
-				) {
-					let sphere = addSphere(x, y, z, sphereColor, sphereRadius);
-					sphereMatrix[x][y].push(sphere);
-					sphereArray.push(sphere);
-				} else {
-					sphereMatrix[x][y].push(null);
-				}
-            }
-        }
-    }
+			animate();
+		})
+		.catch((error) => {
+			console.error("Error loading JSON:", error);
+		});
 }
 
+// Check if WebGL is available
+if (WebGL.isWebGLAvailable()) {
+	initialize();
+} else {
+	const warning = WebGL.getWebGLErrorMessage();
+	document.getElementById("container").appendChild(warning);
+}
+
+// Add initial objects
+// drawSphere(0, 0, 0, 0x000000, 10); // Center sphere
+
+// Logic
 // Camera controls
 let isDragging = false;
 let previousMousePosition = { x: 0, y: 0 };
@@ -147,103 +104,167 @@ document.addEventListener("mousemove", (event) => {
 		x: event.clientX,
 		y: event.clientY,
 	};
-
 });
 
-// Update light position
-function updateCameraPosition() {
-    camera.updateMatrixWorld(); //Update the camera location
-	vector = camera.position.clone(); //Get camera position and put into variable
-	vector.applyMatrix4(camera.matrixWorld); //Hold the camera location in matrix world
-	directionalLight.position.set(vector.x, vector.y, vector.z);
-}
-
-// Render
-function animate() {
-    requestAnimationFrame(animate);
-    updateCameraPosition();
-
-	renderer.render(scene, camera);
-}
-
-if (WebGL.isWebGLAvailable()) {
-	animate();
-} else {
-	const warning = WebGL.getWebGLErrorMessage();
-	document.getElementById("container").appendChild(warning);
-}
-
-// Draw Sphere at the center of world
-// drawSphere(0, 0, 0, 0x000000, 10);
-// drawSphere(10, 0, 0, 0xff0000, 10);
-// drawSphere(0, 10, 0, 0x00ff00, 10);
-// drawSphere(0, 0, 10, 0x0000ff, 10);
-
 // Keyboard input
+let images;
+let imageScale = [100, 100, 100, 100];
+let sphereArray = [];
 let i = 0;
+let persepctiveCubes = [];
+let perspectiveAngles = [];
+
+const rotationAmount = Math.PI / 4;
+
 document.addEventListener("keydown", function (event) {
-    // Log the key code and key character to the console
-    console.log("Key pressed:", event.key);
+	// Log the key code and key character to the console
+	console.log("Key pressed:", event.key);
 
-    
-    // Rotate the boom to the x y z faces
-    let bx = boom.rotation.x;
-    let by = boom.rotation.y;
-    let bz = boom.rotation.z;
+	// Rotate the boom to the x y z faces NEEDS UPDATE
+	let bx = boom.rotation.x;
+	let by = boom.rotation.y;
+	let bz = boom.rotation.z;
 
-    if (event.key == "w") {
-        bx += Math.PI / 2;
-    }
-    if (event.key == "a") {
-        by -= Math.PI / 2;
-    }
-    if (event.key == "d") {
-        by += Math.PI / 2;
+	if (event.key == "w") {
+		bx -= rotationAmount;
+	}
+	if (event.key == "a") {
+		by -= rotationAmount;
+	}
+	if (event.key == "d") {
+		by += rotationAmount;
+	}
+	if (event.key == "s") {
+		bx += rotationAmount;
+	}
+	if (event.key == " ") {
+		bx = 0;
+		by = 0;
+		bz = 0;
+	}
 
-    }
-    if (event.key == "s") {
-        bx -= Math.PI / 2;
-    }
-    if (event.key == " ") {
-        bx = 0;
-        by = 0;
-        bz = 0;
-    }
+	// keep rotation within 0 and 2pi
+	bx = bx % (2 * Math.PI);
+	by = by % (2 * Math.PI);
+	bz = bz % (2 * Math.PI);
 
-    // keep rotation within 0 and 2pi
-    bx = bx % (2 * Math.PI);
-    by = by % (2 * Math.PI);
-    bz = bz % (2 * Math.PI);
-    
-    boom.rotation.set(bx, by, bz);
-    
-    let s = sphereArray[i];
-    // Log sphere positions
-    if (event.key == "p") {
-        console.log("sphere:", s.position.x, s.position.y, s.position.z);
-        console.log("camera:", camera.position.x, camera.position.y, camera.position.z);
-        console.log("boom:", boom.rotation.x * 180 / Math.PI, boom.rotation.y * 180 / Math.PI, boom.rotation.z * 180 / Math.PI);
+	boom.rotation.set(bx, by, bz);
+
+	// Log some information
+	if (event.key == "p") {
+		// console.log("sphere:", s.position.x, s.position.y, s.position.z);
+		console.log(
+			"camera:",
+			camera.position.x,
+			camera.position.y,
+			camera.position.z
+		);
+		console.log(
+			"boom:",
+			(boom.rotation.x * 180) / Math.PI,
+			(boom.rotation.y * 180) / Math.PI,
+			(boom.rotation.z * 180) / Math.PI
+		);
+		let viewPosition = getViewCoordinates();
+		console.log("view:", viewPosition.x, viewPosition.y, viewPosition.z);
+	}
+
+	// Create perspective art from image
+	if (event.key == "o") {
+		sphereArray.forEach((sphere) => {
+			let distance = randomRange(90, 150);
+			let cube = drawPerspectiveCube(
+				sphere,
+				0x000000,
+				distance,
+				sphere.geometry.parameters.radius * 2,
+				false
+            );
+
+            // Face the cube toward the camera
+            cube.rotation.copy(boom.rotation);
+            
+            // Save cubes
+            persepctiveCubes.push(cube);
+        });
+        perspectiveAngles.push(boom.rotation.clone());
+        
+		
+	}
+
+	// Hide image reference
+	if (event.key == "h") {
+		hideImage();
+	}
+
+	// Create plane
+	if (event.key == "c") {
+		let plane = createViewPlane(50, 100, 100, 0x00ff00);
+
+		// Get normal and point on plane
+		let viewPosition = getViewCoordinates();
+		let normal = getDirection(
+			0,
+			0,
+			0,
+			viewPosition.x,
+			viewPosition.y,
+			viewPosition.z
+		);
+		let pointOnPlane = plane.position;
+
+		// Draw line from point on plane to view position
+		drawLine(
+			pointOnPlane.x,
+			pointOnPlane.y,
+			pointOnPlane.z,
+			viewPosition.x,
+			viewPosition.y,
+			viewPosition.z
+		);
+		drawSphere(pointOnPlane.x, pointOnPlane.y, pointOnPlane.z, 0x0000ff, 5);
+
+		// Get the equations
+		// Calculate the constant term 'D' using the formula Ax + By + Cz = D
+		const D = normal.dot(pointOnPlane);
+		const equation = `${normal.x}x + ${normal.y}y + ${normal.z}z = ${D}`;
+
+		console.log("Equation of the Plane:", equation);
+	}
+
+	// Draw square of spheres
+	if (event.key == "l") {
+		// Draw the sphere array
+        sphereArray = drawImage(images[i], imageScale[i], 0x000000);
+        i++;
+
+		// Face the array toware the camera
+        sphereArray.forEach((sphere) => {
+            sphere.position.applyQuaternion(boom.quaternion);
+		});
+	}
+
+    // Log the cubes and angles
+    if (event.key == "k") {
+        saveScene(persepctiveCubes);
+        console.log(perspectiveAngles);
+        
     }
-
-    if (event.key == "o") {
-		if (i < sphereArray.length) {
-			s.material.color.setHex(0xff0000);
-			i++;
-        }
-        drawPerspectiveSphere(s, 0xff0000);
-    }
-
-
-    if (event.key == "h") {
-        hideImage();
-    }
-
 });
 
 // Functions
+// Get coordinates to camera and put it in cameraPositionVector
+function updateCameraPosition() {
+	camera.updateMatrixWorld(); //Update the camera location
+	cameraPositionVector = camera.position.clone(); //Get camera position and put into variable
+	cameraPositionVector.applyMatrix4(camera.matrixWorld); //Hold the camera location in matrix world
+}
+
+
+// Draw sphere at x, y, z with color and radius
 function drawSphere(x, y, z, color, radius) {
 	const sphereGeometry = new THREE.SphereGeometry(radius, 32, 32);
-	const sphereMaterial = new THREE.MeshLambertMaterial({
+	const sphereMaterial = new THREE.MeshBasicMaterial({
 		color: color,
 	});
 	const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
@@ -252,25 +273,121 @@ function drawSphere(x, y, z, color, radius) {
 	sphere.position.set(x, y, z);
 
 	scene.add(sphere);
+
+	return sphere;
 }
 
-function hideImage() {
-    sphereArray.forEach(sphere => {
-        if (sphere.visible) {
-            sphere.visible = false;
-        }
-        else {
-            sphere.visible = true;
-        }
+// Draw cube at x, y, z with color and size
+function drawCube(x, y, z, color, size) {
+    const cubeGeometry = new THREE.BoxGeometry(size, size, size);
+    const cubeMaterial = new THREE.MeshBasicMaterial({
+        color: color,
     });
+    const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+
+    // Draw cube at x, y, z
+    cube.position.set(x, y, z);
+
+    scene.add(cube);
+
+    return cube;
 }
 
+// Get distance between two points
+function getDistance(x1, y1, z1, x2, y2, z2) {
+	const distance = Math.sqrt(
+		(x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2
+	);
+	return distance;
+}
+
+// Maintain relative size of sphere with distance
+function getPerspectiveScaledSize(originalDistance, newDistance, size) {
+	return (newDistance / originalDistance) * size;
+}
+
+// Get coordinates of point from x, y, z in direction with scale
+// Helper for posFromPoint
+function transformCoordinates(x, y, z, direction, scale) {
+	const newPoint = new THREE.Vector3(x, y, z).add(
+		direction.clone().multiplyScalar(scale)
+	);
+	return newPoint;
+}
+
+// Get position of point on line from x1, y1, z1 to x2, y2, z2 at dist from x1, y1, z1
+function posFromPoint(x1, y1, z1, x2, y2, z2, dist) {
+	const direction = getDirection(x1, y1, z1, x2, y2, z2);
+	const position = transformCoordinates(x1, y1, z1, direction, dist);
+	return position;
+}
+
+// Coordinates of view instead of camera
+function getViewCoordinates() {
+	updateCameraPosition();
+	return posFromPoint(
+		0,
+		0,
+		0,
+		cameraPositionVector.x,
+		cameraPositionVector.y,
+		cameraPositionVector.z,
+		boomLength
+	);
+}
+
+// Get direction from x1, y1, z1 to x2, y2, z2
+function getDirection(x1, y1, z1, x2, y2, z2) {
+	const direction = new THREE.Vector3(x2 - x1, y2 - y1, z2 - z1).normalize();
+	return direction;
+}
+
+// Draw line from x1, y1, z1 to x2, y2, z2
+// Old and missing ability to edit distance and color
+function drawLine(x1, y1, z1, x2, y2, z2) {
+	const direction = getDirection(x1, y1, z1, x2, y2, z2);
+
+	// Define a sufficiently large distance to extend the line
+	const distance = 1000; // Adjust this as needed
+
+	// Calculate the new end points for the infinite line
+	const newEndPoint1 = new THREE.Vector3(x1, y1, z1).sub(
+		direction.clone().multiplyScalar(distance)
+	);
+	const newEndPoint2 = new THREE.Vector3(x2, y2, z2).add(
+		direction.clone().multiplyScalar(distance)
+	);
+
+	// Create a line geometry using the new end points
+	const geometry = new THREE.BufferGeometry().setFromPoints([
+		newEndPoint1,
+		newEndPoint2,
+	]);
+
+	// Create a line material and add the line to the scene
+	const line = new THREE.Line(
+		geometry,
+		new THREE.LineBasicMaterial({ color: 0x0000ff })
+	);
+	scene.add(line);
+
+	return line;
+}
+
+// Draw sphere on view position
 function drawViewSphere() {
-    let viewPosition = getViewCoordinates();
+	let viewPosition = getViewCoordinates();
 	drawSphere(viewPosition.x, viewPosition.y, viewPosition.z, 0x00ffff, 5);
 }
 
-function drawPerspectiveSphere(sphere, color, viewInfo = false) {
+// Draw sphere so that it maintains its size relative to the current view position
+function drawPerspectiveSphere(
+	sphere,
+	color,
+	distance,
+	radius,
+	viewInfo = false
+) {
 	// position of s
 	let x1 = sphere.position.x;
 	let y1 = sphere.position.y;
@@ -280,24 +397,20 @@ function drawPerspectiveSphere(sphere, color, viewInfo = false) {
 	let viewPosition = getViewCoordinates();
 
 	// draw a line from sphere to view position
-    if (viewInfo) {
-        drawViewSphere();
+	if (viewInfo) {
+		drawViewSphere();
 		drawLine(x1, y1, z1, viewPosition.x, viewPosition.y, viewPosition.z);
-    }
-	
-
-	// draw dots on line from s to view position
-	const dist = Math.random() * boomLength;
+	}
 
 	// draw a sphere on the line from s to view position at dist
-	const pos = posToView(
+	const pos = posFromPoint(
 		x1,
 		y1,
 		z1,
 		viewPosition.x,
 		viewPosition.y,
 		viewPosition.z,
-		dist
+		distance
 	);
 
 	// viewPosition = vector;
@@ -319,85 +432,190 @@ function drawPerspectiveSphere(sphere, color, viewInfo = false) {
 		viewPosition.z
 	);
 
-	const radius = getPerspectiveScaledSize(
+	const newRadius = getPerspectiveScaledSize(
 		originalDistance,
 		newDistance,
-		sphereRadius
+		radius
 	);
 
-	drawSphere(pos.x, pos.y, pos.z, color, radius);
+	return drawSphere(pos.x, pos.y, pos.z, color, newRadius);
 }
 
-function getDistance(x1, y1, z1, x2, y2, z2) {
-    const distance = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2);
-    return distance;
-}
+// Draw cube so that it maintains its size relative to the current view position
+function drawPerspectiveCube(
+    cube,
+    color,
+    distance,
+    size,
+    viewInfo = false
+) {
+    // position of s
+    let x1 = cube.position.x;
+    let y1 = cube.position.y;
+    let z1 = cube.position.z;
+    
+    // draw sphere on view position
+    let viewPosition = getViewCoordinates();
 
-function getPerspectiveScaledSize(originalDistance, newDistance, size) { 
-    return (newDistance / originalDistance) * size;
-}
+    // draw a line from sphere to view position
+    if (viewInfo) {
+        drawViewSphere();
+        drawLine(x1, y1, z1, viewPosition.x, viewPosition.y, viewPosition.z);
+    }
 
-function getDirection(x1, y1, z1, x2, y2, z2) {
-    const direction = new THREE.Vector3(x2 - x1, y2 - y1, z2 - z1).normalize();
-    return direction;
-}
-
-function transformCoordinates(x, y, z, direction, scale) {
-    const newPoint = new THREE.Vector3(x, y, z).add(
-        direction.clone().multiplyScalar(scale)
-    );
-    return newPoint;
-}
-
-function getViewCoordinates() {
-    updateCameraPosition();
-
-    return posToView(0,0,0, vector.x, vector.y, vector.z, boomLength);
-}
-
-function posToView(x1, y1, z1, x2, y2, z2, dist) {
-    const direction = getDirection(x1, y1, z1, x2, y2 ,z2);
-    const position = transformCoordinates(x1, y1, z1, direction, dist);
-    return position;
-
-}
-
-function drawLine(x1, y1, z1, x2, y2, z2) {
-    const direction = new THREE.Vector3(
-        x2 - x1,
-        y2 - y1,
-        z2 - z1
-    ).normalize();
-
-    // Define a sufficiently large distance to extend the line
-    const distance = 1000; // Adjust this as needed
-
-    // Calculate the new end points for the infinite line
-    const newEndPoint1 = new THREE.Vector3(x1, y1, z1).sub(
-        direction.clone().multiplyScalar(distance)
-    );
-    const newEndPoint2 = new THREE.Vector3(x2, y2, z2).add(
-        direction.clone().multiplyScalar(distance)
+    // draw a sphere on the line from s to view position at dist
+    const pos = posFromPoint(
+        x1,
+        y1,
+        z1,
+        viewPosition.x,
+        viewPosition.y,
+        viewPosition.z,
+        distance
     );
 
-    // Create a line geometry using the new end points
-    const geometry = new THREE.BufferGeometry().setFromPoints([
-        newEndPoint1,
-        newEndPoint2,
-    ]);
-
-    // Create a line material and add the line to the scene
-    const line = new THREE.Line(
-        geometry,
-        new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 100 })
+    // viewPosition = vector;
+    // set the size of the radius of the sphere so that it looks like the same size as s despite changing its distance
+    const originalDistance = getDistance(
+        x1,
+        y1,
+        z1,
+        viewPosition.x,
+        viewPosition.y,
+        viewPosition.z
     );
-    scene.add(line);
+    const newDistance = getDistance(
+        pos.x,
+        pos.y,
+        pos.z,
+        viewPosition.x,
+        viewPosition.y,
+        viewPosition.z
+    );
+
+    const newSize = getPerspectiveScaledSize(
+        originalDistance,
+        newDistance,
+        size
+    );
+
+    return drawCube(pos.x, pos.y, pos.z, color, newSize);
 }
 
-function drawDot(x, y, radius, color) {
-	ctx.beginPath();
-	ctx.arc(x, y, radius, 0, Math.PI * 2);
-	ctx.fillStyle = color;
-	ctx.fill();
-	ctx.closePath();
+// Draw plane at x, y, z with width, height, and color
+function drawPlane(x, y, z, width, height, color) {
+	const planeGeometry = new THREE.PlaneGeometry(width, height); // Adjust the size as needed
+
+	// Create a material for the plane
+	const planeMaterial = new THREE.MeshBasicMaterial({
+		color: color,
+		side: THREE.DoubleSide,
+	});
+
+	// Create a mesh using the geometry and material
+	const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+
+	planeMesh.position.set(x, y, z);
+
+	// Add the mesh to the scene
+	scene.add(planeMesh);
+
+	// Apply the rotation to the plane
+	planeMesh.rotation.copy(boom.rotation);
+
+	return planeMesh;
 }
+
+// Cretae a plane at a distance from the origin
+function createViewPlane(distance, width, height, color) {
+	let viewPosition = getViewCoordinates();
+	let closerPos = posFromPoint(
+		0,
+		0,
+		0,
+		viewPosition.x,
+		viewPosition.y,
+		viewPosition.z,
+		distance
+	);
+
+	return drawPlane(
+		closerPos.x,
+		closerPos.y,
+		closerPos.z,
+		width,
+		height,
+		color
+	);
+}
+
+// Hides the image
+function hideImage() {
+	sphereArray.forEach((sphere) => {
+		if (sphere.visible) {
+			sphere.visible = false;
+		} else {
+			sphere.visible = true;
+		}
+	});
+}
+
+// Draw image
+function drawImage(image, scale, color) {
+    let sphereArray = [];
+    let size = image.length;
+    let spacing = scale / size;
+    let radius = spacing / 2;
+    let offset = -scale / 2 + radius;
+
+    let x = offset;
+    let y = offset;
+    let z = 0;
+
+    for (let i = 0;i < image.length;i++) {
+        
+        x = offset;
+        for (let j = 0; j < image[0].length; j++) {
+            if (image[image.length - i - 1][j] == 1) {
+                sphereArray.push(drawSphere(x, y, z, color, radius));
+            }
+            x += spacing;
+        }
+        y += spacing;
+    }
+    return sphereArray;
+}
+
+// Generate random numbers in range
+function randomRange(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+// Save scene
+function saveScene(array) {
+    const sceneObjectsData = [];
+    array.forEach((object) => {
+        const data = {
+            position: object.position.toArray(),
+            rotation: object.rotation.toArray(),
+            scale: object.geometry.parameters
+        };
+        sceneObjectsData.push(data);
+    });
+
+    // Save sceneObjectsData to a file
+    const jsonData = JSON.stringify(sceneObjectsData);
+
+    const blob = new Blob([jsonData], { type: "application/json" });
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement("a");
+	link.href = url;
+	link.download = "sceneData.json";
+	link.click();
+
+}
+    
+
+
+
+
